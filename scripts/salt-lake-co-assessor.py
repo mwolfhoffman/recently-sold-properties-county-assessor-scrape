@@ -5,9 +5,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
-
 import time
 
+# TODO: use chromeOptions to avoid loading images and to use disk caching. 
+# TODO: read robots.txt 
 
 def main(address, date_sold):
     driver = webdriver.Chrome(ChromeDriverManager().install())
@@ -55,10 +56,10 @@ def main(address, date_sold):
 
     print(
         {
-            "owner": owner,
+            "owner": owner_decode,
             "address": address,
             "date_sold": date_sold,
-            "market_value": market_value
+            "market_value": market_value_decode
         }
     )
 

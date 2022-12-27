@@ -1,12 +1,13 @@
 from bs4 import BeautifulSoup
 from time import sleep
 from requests_html import HTMLSession
+import json
 
 
 class Property:
     def __init__(self, address: str, status_text: str) -> None:
-        self.address = address
-        self.date_sold = self.parse_status_text(status_text)
+        self.address = address.strip()
+        self.date_sold = self.parse_status_text(status_text).strip()
 
     def __str__(self) -> str:
         return f"address:{self.address}, date_sold: {self.date_sold}"
@@ -18,6 +19,10 @@ class Property:
 
         split = status_text.split(prefix)
         return split[1]
+
+    def to_json(self):
+        return json.dumps(self, default=lambda o: o.__dict__,
+                          sort_keys=True, indent=4)
 
 
 def scrape_realtor_for_recently_sold_homes(location, page):
@@ -42,10 +47,13 @@ def scrape_realtor_for_recently_sold_homes(location, page):
                 'span', {"class": "statusText"}) else ""
 
             if address != None:
-                prop = Property(address=address, status_text=status_text)
-                properties.append(prop)
 
-        print(*properties, sep=' \n')
+                prop = Property(address=address, status_text=status_text)
+
+                properties.append(prop.to_json())
+
+        with open("./data/recently-sold.json", "w") as outfile:
+            json.dump(properties, outfile)
 
 
 scrape_realtor_for_recently_sold_homes('Salt-Lake-County_UT', 1)
