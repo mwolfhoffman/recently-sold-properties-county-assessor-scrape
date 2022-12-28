@@ -1,5 +1,6 @@
 appdirs==1.4.4
 async-generator==1.10
+asyncio==3.4.3
 attrs==22.2.0
 awscli==1.27.14
 beautifulsoup4==4.11.1

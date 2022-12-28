@@ -1,7 +1,8 @@
 from bs4 import BeautifulSoup
-from time import sleep
-from requests_html import HTMLSession
+from requests_html import AsyncHTMLSession
+from typing import List
 import json
+import asyncio
 
 
 class Property:
@@ -25,10 +26,13 @@ class Property:
                           sort_keys=True, indent=4)
 
 
-def scrape_realtor_for_recently_sold_homes(location, page):
-    session = HTMLSession()
-    url = f"https://www.realtor.com/realestateandhomes-search/{location}/show-recently-sold/pg-{page}"
-    response = session.get(url, verify=False)
+properties: List[Property] = []
+
+
+async def get_pages(location) -> int:
+    session = AsyncHTMLSession()
+    url = f"https://www.realtor.com/realestateandhomes-search/{location}/show-recently-sold/pg-1"
+    response = await session.get(url, verify=False)
 
     if response.status_code == 200:
         soup = BeautifulSoup(response.text, 'html.parser')
@@ -36,9 +40,18 @@ def scrape_realtor_for_recently_sold_homes(location, page):
         total_pages = soup.select_one(
             '#srp-body > section.jsx-2905457505.srp-content > div.jsx-2905457505.pagination-wrapper.text-center > div > a:nth-child(8)').text
 
-        cards = soup.find_all("li", {"class": "component_property-card"})
+        return int(total_pages)
 
-        properties = []
+
+async def scrape_realtor_for_recently_sold_homes(location, page):
+    session = AsyncHTMLSession()
+    url = f"https://www.realtor.com/realestateandhomes-search/{location}/show-recently-sold/pg-{page}"
+    response = await session.get(url, verify=False)
+
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        cards = soup.find_all("li", {"class": "component_property-card"})
 
         for card in cards:
             address = card.find('div', {"class": "address"}).text if card.find(
@@ -52,12 +65,24 @@ def scrape_realtor_for_recently_sold_homes(location, page):
 
                 properties.append(prop.to_json())
 
-        with open("./data/recently-sold.json", "w") as outfile:
-            json.dump(properties, outfile)
+
+async def main(location, total_pages) -> None:
+
+    current_page = 1
+    while current_page < total_pages:
+        await scrape_realtor_for_recently_sold_homes(location, 1)
+        current_page += 1
+
+    with open("./data/recently-sold.json", "w") as outfile:
+        json.dump(properties, outfile)
 
 
-scrape_realtor_for_recently_sold_homes('Salt-Lake-County_UT', 1)
-
-
-# TODO: work in progress. Will also need to find homeowners after recently sold.
-# https://requests.readthedocs.io/projects/requests-html/en/latest/
+total_pages = 0
+location = "Salt-Lake-Count_UT"
+loop = asyncio.get_event_loop()
+tasks = [get_pages(location)]
+total_pages = loop.run_until_complete(asyncio.gather(*tasks))[0]
+print(total_pages)
+tasks = [main(location, total_pages)]
+total_pages = loop.run_until_complete(asyncio.gather(*tasks))
+loop.close()
