@@ -6,11 +6,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import time
+import json
 
-# TODO: use chromeOptions to avoid loading images and to use disk caching. 
-# TODO: read robots.txt 
+assessor_data = []
 
-def main(address, date_sold):
+
+def get_county_assessor_data(address, date_sold):
     driver = webdriver.Chrome(ChromeDriverManager().install())
     wait = WebDriverWait(driver, 10)
     # driver.maximize_window()
@@ -44,30 +45,41 @@ def main(address, date_sold):
 
     soup = BeautifulSoup(parcel_details, 'html.parser')
 
+    owner_decode, market_value_decode = "", ""
+
     owner = soup.select_one(
-        "#parcelFieldNames > div:nth-child(2) > div > table > tbody > tr:nth-child(1) > td:nth-child(2)").text or ""
-    owner_enc = owner.encode(encoding='utf8')
-    owner_decode = owner_enc.decode('utf8', 'strict')
+        "#parcelFieldNames > div:nth-child(2) > div > table > tbody > tr:nth-child(1) > td:nth-child(2)").text if soup.select_one(
+        "#parcelFieldNames > div:nth-child(2) > div > table > tbody > tr:nth-child(1) > td:nth-child(2)") else ""
+
+    if owner != "":
+        owner_enc = owner.encode(encoding='utf8')
+        owner_decode = owner_enc.decode('utf8', 'strict')
 
     market_value = soup.select_one(
-        "#valuehistory > table > tbody > tr:nth-child(1) > td:nth-child(5)").text or ""
-    market_value_enc = market_value.encode(encoding='utf8')
-    market_value_decode = market_value_enc.decode('utf8', 'strict')
+        "#valuehistory > table > tbody > tr:nth-child(1) > td:nth-child(5)").text if soup.select_one(
+        "#valuehistory > table > tbody > tr:nth-child(1) > td:nth-child(5)") else ""
 
-    print(
-        {
-            "owner": owner_decode,
-            "address": address,
-            "date_sold": date_sold,
-            "market_value": market_value_decode
-        }
-    )
+    if market_value != "":
+        market_value_enc = market_value.encode(encoding='utf8')
+        market_value_decode = market_value_enc.decode('utf8', 'strict')
 
-    time.sleep(1)
-
+    assessor_data.append({
+        "owner": owner_decode,
+        "address": address,
+        "date_sold": date_sold,
+        "market_value": market_value_decode
+    })
     driver.quit()
 
 
-main("1221 W Tamarack Rd", "May 11, 2020")
+def main():
+    with open('./data/recently-sold.json', 'r') as f:
+        data = json.load(f)
+        for row in data:
+            obj = json.loads(row)
+            get_county_assessor_data(obj["address"], obj["date_sold"])
 
-# parcelFieldNames > div:nth-child(2) > div > table > tbody > tr:nth-child(1) > td:nth-child(2)
+    with open("./data/assessor-data.json", "w") as outfile:
+        json.dump(assessor_data, outfile)
+
+main()

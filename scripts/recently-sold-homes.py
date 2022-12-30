@@ -70,7 +70,8 @@ async def main(location, total_pages) -> None:
 
     current_page = 1
     while current_page < total_pages:
-        await scrape_realtor_for_recently_sold_homes(location, 1)
+        print(f"Scraping page: {current_page}")
+        await scrape_realtor_for_recently_sold_homes(location, current_page)
         current_page += 1
 
     with open("./data/recently-sold.json", "w") as outfile:
