@@ -4,7 +4,7 @@ These python scripts use asyncio, beautifulsoup, and selenium to obtain the home
 
 These scripts can be easily customized for other counties. 
 
-I wrote this scraper because I was curious how scammers and home-warranty companies get access to this data.
+I wrote this scraper because I was curious how scammers and home-warranty companies get access to this data so easily and I also wanted to improve my python web scraping skillset.
 
 ## Requirments
 1. Python3
